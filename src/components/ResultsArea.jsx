@@ -401,10 +401,22 @@ export default function ResultsArea({
               lineHeight: 1.45,
               color: 'var(--color-text-secondary)',
               maxWidth: '52ch',
+              marginBottom: '1.25rem',
             }}
           >
             {results.verdict}
           </p>
+
+          {/* Deep dive button — lives under the score */}
+          {results.priceSeries && Object.keys(results.priceSeries).length > 0 && (
+            <button
+              className="deep-dive-btn"
+              onClick={() => setDeepDiveOpen(true)}
+            >
+              <span className="deep-dive-btn-icon">⬡</span>
+              More In-Depth Graphical Explanation
+            </button>
+          )}
         </div>
 
         <div style={{ height: 1, background: 'var(--color-border)', marginBottom: '2rem' }} />
@@ -485,8 +497,30 @@ export default function ResultsArea({
             lineHeight: 1.75,
             color: 'var(--color-text-secondary)',
             maxWidth: '65ch',
+            marginBottom: '1rem',
           }}>
             {results.whatThisMeans}
+          </p>
+          <p style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: '0.8rem',
+            lineHeight: 1.7,
+            color: 'var(--color-text-muted)',
+            maxWidth: '65ch',
+          }}>
+            {(() => {
+              const top = results.allPairs?.[0]
+              const topPct = top ? Math.round(top.correlation * 100) : null
+              const count = results.perTicker?.length || 0
+              const highCount = (results.allPairs || []).filter(p => p.correlation >= 0.75).length
+              if (results.severity === 'low') {
+                return `Your ${count} holdings show relatively independent price behavior over the past ${results.tradingDaysUsed || 100} trading days. ${highCount === 0 ? 'No pairs are highly correlated' : `Only ${highCount} pair${highCount > 1 ? 's' : ''} cross the high-correlation threshold`}, meaning a downturn in one position is unlikely to drag the others down simultaneously.`
+              }
+              if (results.severity === 'moderate') {
+                return `Across ${results.tradingDaysUsed || 100} trading days, your ${count} holdings show meaningful overlap in how they move. ${top ? `${top.tickerA} and ${top.tickerB} are your most correlated pair at ${topPct}%.` : ''} A broad market event would likely affect multiple positions at once — consider whether your intended diversification is actually working.`
+              }
+              return `Your portfolio moves largely in sync. ${top ? `${top.tickerA} and ${top.tickerB} are ${topPct}% correlated` : `${highCount} pairs are highly correlated`} over the past ${results.tradingDaysUsed || 100} trading days — meaning in a sell-off, most of your positions would likely fall together. True diversification requires holdings with genuinely different return drivers.`
+            })()}
           </p>
 
           <Disclaimer />
@@ -504,19 +538,6 @@ export default function ResultsArea({
             letterSpacing: '0.04em',
           }}>
             {results.tradingDaysUsed} trading days · {results.dataFrom} → {results.dataTo}
-          </div>
-        )}
-
-        {/* Deep dive CTA */}
-        {results.priceSeries && Object.keys(results.priceSeries).length > 0 && (
-          <div style={{ marginTop: '2.5rem' }}>
-            <button
-              className="deep-dive-btn"
-              onClick={() => setDeepDiveOpen(true)}
-            >
-              <span className="deep-dive-btn-icon">⬡</span>
-              More In-Depth Graphical Explanation
-            </button>
           </div>
         )}
 
