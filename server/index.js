@@ -5,11 +5,17 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+const isProd = process.env.NODE_ENV === 'production';
 
-// CORS — allow Prism frontend during development (mirrors Atlas CORS pattern)
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5174',
-}));
+// In production, serve built frontend — no CORS needed (same origin)
+if (isProd) {
+  const distPath = path.join(__dirname, '../dist');
+  app.use(express.static(distPath));
+} else {
+  app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5174',
+  }));
+}
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -21,6 +27,13 @@ app.use('/api/auth',    require('./routes/auth'));
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'prism-server', timestamp: new Date().toISOString() });
 });
+
+// In production, serve React app for all non-API routes
+if (isProd) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+}
 
 // Error handler
 app.use((err, req, res, next) => {
