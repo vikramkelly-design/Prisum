@@ -160,6 +160,7 @@ export default function AnalyzerPage() {
         isWeighted:      d.isWeighted || false,
         weights:         d.weights || {},
         lastPrices:      d.lastPrices || {},
+        priceSeries:     d.priceSeries || {},
         tradingDaysUsed: d.tradingDaysUsed,
         dataFrom:        d.dataFrom,
         dataTo:          d.dataTo,

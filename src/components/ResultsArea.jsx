@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
+import DeepDiveModal from './DeepDiveModal'
 
 // ── Severity helpers ──────────────────────────────────────────────────────────
 
@@ -174,10 +175,15 @@ export default function ResultsArea({
   analyzingTickers = [],
 }) {
   const [displayScore, setDisplayScore] = useState(0)
+  const [deepDiveOpen, setDeepDiveOpen] = useState(false)
   const prevResultsRef = useRef(null)
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  useEffect(() => {
+    setDeepDiveOpen(false)
+  }, [results])
 
   useEffect(() => {
     if (!results || results === prevResultsRef.current) return
@@ -501,7 +507,25 @@ export default function ResultsArea({
           </div>
         )}
 
+        {/* Deep dive CTA */}
+        {results.priceSeries && Object.keys(results.priceSeries).length > 0 && (
+          <div style={{ marginTop: '2.5rem' }}>
+            <button
+              className="deep-dive-btn"
+              onClick={() => setDeepDiveOpen(true)}
+            >
+              <span className="deep-dive-btn-icon">⬡</span>
+              More In-Depth Graphical Explanation
+            </button>
+          </div>
+        )}
+
       </div>
+
+      {deepDiveOpen && (
+        <DeepDiveModal results={results} onClose={() => setDeepDiveOpen(false)} />
+      )}
+
     </main>
   )
 }

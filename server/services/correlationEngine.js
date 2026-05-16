@@ -2,6 +2,7 @@ const { getYF } = require('../utils/yahoo');
 
 const TRADING_DAYS_REQUESTED = 252; // ~1 year of trading days
 const CALENDAR_DAY_BUFFER    = 400; // calendar days to request to guarantee 252 trading days
+const PRICE_CHART_DAYS       = 100; // days to expose for the normalized price chart
 
 // ── Step 1: Fetch daily closing prices ───────────────────────────────────────
 
@@ -33,6 +34,14 @@ async function fetchPrices(ticker) {
   const recent = prices.slice(-TRADING_DAYS_REQUESTED);
   const lastClose = recent[recent.length - 1].close;
 
+  // Normalized price series for chart (last 100 days, rebased to 100 at day 0)
+  const chartSlice = recent.slice(-PRICE_CHART_DAYS);
+  const basePrice  = chartSlice[0].close;
+  const priceSeries = chartSlice.map(p => ({
+    date:  p.date,
+    value: Math.round((p.close / basePrice) * 1000) / 10, // rebased to 100.0
+  }));
+
   // Step 1 cont: convert closing prices → daily returns
   // return[N] = (price[N] - price[N-1]) / price[N-1]
   const returns = [];
@@ -42,7 +51,7 @@ async function fetchPrices(ticker) {
   }
 
   if (returns.length === 0) throw new Error(`Could not compute returns for ${ticker}`);
-  return { returns, lastClose };
+  return { returns, lastClose, priceSeries };
 }
 
 // ── Step 2: Align return series to shared trading dates ──────────────────────
@@ -112,14 +121,16 @@ async function analyze(tickers, sharesMap = {}) {
 
   const validReturns   = {};
   const lastCloses     = {};
+  const priceSeriesMap = {};
   const invalidTickers = [];
 
   for (let i = 0; i < normalized.length; i++) {
     const ticker = normalized[i];
     const result = fetchResults[i];
     if (result.status === 'fulfilled') {
-      validReturns[ticker] = result.value.returns;
-      lastCloses[ticker]   = result.value.lastClose;
+      validReturns[ticker]  = result.value.returns;
+      lastCloses[ticker]    = result.value.lastClose;
+      priceSeriesMap[ticker] = result.value.priceSeries;
     } else {
       console.warn(`[PrismEngine] ${ticker} failed: ${result.reason?.message}`);
       invalidTickers.push({ ticker, reason: result.reason?.message || 'Unknown error' });
@@ -226,8 +237,9 @@ async function analyze(tickers, sharesMap = {}) {
     tradingDaysUsed,
     dataFrom: dates[0],
     dataTo: dates[dates.length - 1],
-    lastPrices: lastCloses,
-    isWeighted: hasShares,
+    lastPrices:  lastCloses,
+    priceSeries: priceSeriesMap,
+    isWeighted:  hasShares,
     weights,
     ...(invalidTickers.length > 0 && { invalidTickers }),
     ...(warning && { warning }),
