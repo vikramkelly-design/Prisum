@@ -175,6 +175,7 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function DeepDiveModal({ results, onClose }) {
   const overlayRef = useRef(null)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -213,9 +214,9 @@ export default function DeepDiveModal({ results, onClose }) {
         maxWidth: 860,
         background: 'var(--color-bg)',
         border: '1px solid var(--color-border)',
-        borderRadius: 12,
+        borderRadius: isMobile ? 8 : 12,
         boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
-        padding: '2.5rem 2.5rem 3rem',
+        padding: isMobile ? '1.5rem 1rem 2rem' : '2.5rem 2.5rem 3rem',
         position: 'relative',
       }}>
 
@@ -277,8 +278,9 @@ export default function DeepDiveModal({ results, onClose }) {
 
         {/* Normalized price chart */}
         {data.length > 0 && (
-          <div style={{ marginBottom: '3rem' }}>
-            <ResponsiveContainer width="100%" height={340}>
+          <div style={{ marginBottom: '3rem', overflowX: 'auto' }}>
+            <div style={{ minWidth: isMobile ? 480 : '100%' }}>
+            <ResponsiveContainer width="100%" height={isMobile ? 240 : 340}>
               <LineChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -322,6 +324,7 @@ export default function DeepDiveModal({ results, onClose }) {
                 ))}
               </LineChart>
             </ResponsiveContainer>
+            </div>
           </div>
         )}
 

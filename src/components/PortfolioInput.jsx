@@ -30,6 +30,10 @@ export default function PortfolioInput({
   isAnalyzing,
   invalidTickerSet = new Set(),
   perTicker = [],
+  isMobile = false,
+  onMobileClose = null,
+  hasResults = false,
+  sidebarWidth = 300,
 }) {
   const [ticker, setTicker] = useState('')
   const [shares, setShares] = useState('')
@@ -94,41 +98,63 @@ export default function PortfolioInput({
 
   return (
     <aside style={{
-      width: 300,
+      width: isMobile ? '100%' : sidebarWidth,
       flexShrink: 0,
       background: 'var(--color-sidebar)',
-      height: '100vh',
-      position: 'sticky',
+      height: isMobile ? 'auto' : '100vh',
+      position: isMobile ? 'relative' : 'sticky',
       top: 0,
       display: 'flex',
       flexDirection: 'column',
-      padding: '2.5rem 1.75rem 2rem',
+      padding: isMobile ? '1.5rem 1.25rem 1.5rem' : '2.5rem 1.75rem 2rem',
       overflowY: 'auto',
     }}>
 
       {/* Wordmark */}
-      <div style={{ marginBottom: '3rem' }}>
-        <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '10px',
-          fontWeight: 500,
-          letterSpacing: '0.2em',
-          textTransform: 'uppercase',
-          color: 'var(--color-gold)',
-          marginBottom: '0.5rem',
-        }}>
-          Prism
+      <div style={{ marginBottom: isMobile ? '1.5rem' : '3rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '10px',
+            fontWeight: 500,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: 'var(--color-gold)',
+            marginBottom: '0.5rem',
+          }}>
+            Prism
+          </div>
+          {!isMobile && (
+            <div style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: '1.05rem',
+              fontStyle: 'italic',
+              color: 'var(--color-text-sidebar)',
+              lineHeight: 1.4,
+              fontWeight: 300,
+            }}>
+              Portfolio<br />Risk Analysis
+            </div>
+          )}
         </div>
-        <div style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '1.05rem',
-          fontStyle: 'italic',
-          color: 'var(--color-text-sidebar)',
-          lineHeight: 1.4,
-          fontWeight: 300,
-        }}>
-          Portfolio<br />Risk Analysis
-        </div>
+        {isMobile && hasResults && onMobileClose && (
+          <button
+            onClick={onMobileClose}
+            style={{
+              background: 'none',
+              border: '1px solid rgba(200,212,232,0.2)',
+              borderRadius: 6,
+              color: 'rgba(200,212,232,0.6)',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '0.72rem',
+              padding: '0.3rem 0.65rem',
+              cursor: 'pointer',
+              lineHeight: 1,
+            }}
+          >
+            View Results ↓
+          </button>
+        )}
       </div>
 
       {/* Ticker input */}

@@ -1,9 +1,21 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import PortfolioInput from '../components/PortfolioInput'
 import ResultsArea    from '../components/ResultsArea'
 
 const STORAGE_KEY  = 'prism_holdings'
 const HISTORY_KEY  = 'prism_history'
+
+function useWindowWidth() {
+  const [width, setWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  )
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+  return width
+}
 
 function loadHoldings() {
   try {
@@ -101,6 +113,13 @@ export default function AnalyzerPage() {
   const [invalidTickerSet,  setInvalidTickerSet]  = useState(new Set())
   const [analyzingTickers,  setAnalyzingTickers]  = useState([])
   const [history,           setHistory]           = useState(loadHistory)
+  const [sidebarOpen,       setSidebarOpen]       = useState(true)
+  const resultsRef = useRef(null)
+
+  const windowWidth = useWindowWidth()
+  const isMobile  = windowWidth < 768
+  const isTablet  = windowWidth >= 768 && windowWidth < 1100
+  const sidebarW  = isMobile ? '100%' : isTablet ? 240 : 300
 
   useEffect(() => { saveHoldings(holdings) }, [holdings])
 
@@ -170,6 +189,12 @@ export default function AnalyzerPage() {
 
       setResults(fullResults)
 
+      // On mobile, collapse sidebar and scroll to results after analysis
+      if (isMobile) {
+        setSidebarOpen(false)
+        setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+      }
+
       const entry = {
         id:       entryId,
         savedAt:  new Date().toISOString(),
@@ -193,19 +218,77 @@ export default function AnalyzerPage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <PortfolioInput
-        holdings={holdings}
-        onHoldingsChange={setHoldings}
-        onRunAnalysis={handleRunAnalysis}
-        isAnalyzing={isAnalyzing}
-        invalidTickerSet={invalidTickerSet}
-        perTicker={results?.perTicker || []}
-      />
-      <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: isMobile ? 'column' : 'row',
+      height: isMobile ? 'auto' : '100vh',
+      minHeight: '100vh',
+      overflow: isMobile ? 'visible' : 'hidden',
+    }}>
+
+      {/* ── Sidebar / Portfolio Input ── */}
+      {isMobile ? (
+        <>
+          {/* Mobile collapsed bar */}
+          {!sidebarOpen && (
+            <div className="mobile-sidebar-bar">
+              <div className="mobile-sidebar-bar-info">
+                <span className="mobile-sidebar-bar-logo">Prism</span>
+                {holdings.length > 0 && (
+                  <span className="mobile-sidebar-bar-count">{holdings.length} holding{holdings.length !== 1 ? 's' : ''}</span>
+                )}
+              </div>
+              <button className="mobile-sidebar-bar-btn" onClick={() => setSidebarOpen(true)}>
+                Edit Portfolio +
+              </button>
+            </div>
+          )}
+
+          {/* Mobile expanded sidebar */}
+          {sidebarOpen && (
+            <div style={{ position: 'relative' }}>
+              <PortfolioInput
+                holdings={holdings}
+                onHoldingsChange={setHoldings}
+                onRunAnalysis={() => { handleRunAnalysis() }}
+                isAnalyzing={isAnalyzing}
+                invalidTickerSet={invalidTickerSet}
+                perTicker={results?.perTicker || []}
+                isMobile={isMobile}
+                onMobileClose={() => setSidebarOpen(false)}
+                hasResults={!!results}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <PortfolioInput
+          holdings={holdings}
+          onHoldingsChange={setHoldings}
+          onRunAnalysis={handleRunAnalysis}
+          isAnalyzing={isAnalyzing}
+          invalidTickerSet={invalidTickerSet}
+          perTicker={results?.perTicker || []}
+          sidebarWidth={sidebarW}
+        />
+      )}
+
+      {/* ── Main content ── */}
+      <div
+        ref={resultsRef}
+        style={{
+          position: 'relative',
+          flex: 1,
+          minWidth: 0,
+          ...(isMobile && { minHeight: results || isAnalyzing ? '100vh' : 'auto' }),
+        }}
+      >
         <HistoryDropdown
           history={history}
-          onSelect={(entry) => setResults(entry.results)}
+          onSelect={(entry) => {
+            setResults(entry.results)
+            if (isMobile) setSidebarOpen(false)
+          }}
           activeId={results?._historyId ?? null}
         />
         <ResultsArea
@@ -213,6 +296,7 @@ export default function AnalyzerPage() {
           isAnalyzing={isAnalyzing}
           apiError={apiError}
           analyzingTickers={analyzingTickers}
+          isMobile={isMobile}
         />
       </div>
     </div>

@@ -173,6 +173,7 @@ export default function ResultsArea({
   isAnalyzing,
   apiError,
   analyzingTickers = [],
+  isMobile = false,
 }) {
   const [displayScore, setDisplayScore] = useState(0)
   const [deepDiveOpen, setDeepDiveOpen] = useState(false)
@@ -216,12 +217,12 @@ export default function ResultsArea({
     return (
       <main style={{
         flex: 1,
-        minHeight: '100vh',
+        minHeight: isMobile ? '50vh' : '100vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '4rem',
+        padding: isMobile ? '2.5rem 1.5rem' : '4rem',
         background: 'var(--color-bg)',
       }}>
         <div style={{ maxWidth: 520, textAlign: 'center' }}>
@@ -290,7 +291,7 @@ export default function ResultsArea({
     return (
       <main style={{
         flex: 1,
-        minHeight: '100vh',
+        minHeight: isMobile ? '60vh' : '100vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -318,10 +319,11 @@ export default function ResultsArea({
   return (
     <main style={{
       flex: 1,
-      height: '100vh',
-      overflowY: 'auto',
+      height: isMobile ? 'auto' : '100vh',
+      minHeight: isMobile ? '100vh' : 'auto',
+      overflowY: isMobile ? 'visible' : 'auto',
       background: 'var(--color-bg)',
-      padding: '3rem 3.5rem 4rem',
+      padding: isMobile ? '2rem 1.25rem 3rem' : '3rem 3.5rem 4rem',
     }}>
       <div style={{ maxWidth: 780 }}>
 
