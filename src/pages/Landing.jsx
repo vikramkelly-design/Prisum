@@ -376,7 +376,7 @@ function FinalCTA({ goTo }) {
         See what your portfolio<br />really looks like.
       </h2>
       <p className="landing-final-sub cta-animate">
-        Takes 30 seconds. No account required to try — create one to save your results.
+        Takes 30 seconds.
       </p>
       <div className="cta-animate">
         <GoldButton onClick={() => goTo('/auth')}>
