@@ -2,6 +2,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
+const { ensureSchema } = require('./utils/db');
 
 const app = express();
 app.set('trust proxy', 1); // Railway (and most PaaS) sit behind a reverse proxy
@@ -42,8 +43,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: err.message || 'Internal server error' });
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`Prism server running on port ${PORT}`);
+  await ensureSchema();
 });
 
 server.on('error', (err) => {

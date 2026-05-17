@@ -1,9 +1,18 @@
+const { getCached, setCached } = require('../utils/db');
+
 const TRADING_DAYS_REQUESTED = 252; // ~1 year of trading days
 const PRICE_CHART_DAYS       = 100; // days to expose for the normalized price chart
 
-// ── Step 1: Fetch daily closing prices via Finnhub ───────────────────────────
+// ── Step 1: Fetch daily closing prices via Finnhub (with DB cache) ───────────
 
 async function fetchPrices(ticker) {
+  // Check cache first — avoids hitting Finnhub on repeat analyses
+  const cached = await getCached(ticker);
+  if (cached) {
+    console.log(`[Cache] ${ticker} hit`);
+    return cached;
+  }
+
   const apiKey = process.env.FINNHUB_API_KEY;
   if (!apiKey) throw new Error('FINNHUB_API_KEY is not set');
 
@@ -50,6 +59,12 @@ async function fetchPrices(ticker) {
   }
 
   if (returns.length === 0) throw new Error(`Could not compute returns for ${ticker}`);
+
+  // Store in cache for next 24 hours
+  const dataTo = prices[prices.length - 1].date;
+  await setCached(ticker, { returns, lastClose, priceSeries, dataTo });
+  console.log(`[Cache] ${ticker} stored (${prices.length} days)`);
+
   return { returns, lastClose, priceSeries };
 }
 
