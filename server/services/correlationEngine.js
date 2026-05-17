@@ -13,27 +13,24 @@ async function fetchPrices(ticker) {
     return cached;
   }
 
-  const apiKey = process.env.FINNHUB_API_KEY;
-  if (!apiKey) throw new Error('FINNHUB_API_KEY is not set');
+  const apiKey = process.env.TWELVE_DATA_API_KEY;
+  if (!apiKey) throw new Error('TWELVE_DATA_API_KEY is not set');
 
-  const to   = Math.floor(Date.now() / 1000);
-  const from = to - 550 * 24 * 60 * 60; // ~550 days back to guarantee 252 trading days
-
-  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(ticker)}&resolution=D&from=${from}&to=${to}&token=${apiKey}`;
+  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(ticker)}&interval=1day&outputsize=300&apikey=${apiKey}`;
   const res  = await fetch(url);
-  if (!res.ok) throw new Error(`Finnhub returned ${res.status} for ${ticker}`);
+  if (!res.ok) throw new Error(`Twelve Data returned ${res.status} for ${ticker}`);
 
   const data = await res.json();
-  if (data.s !== 'ok' || !Array.isArray(data.c) || data.c.length === 0) {
-    throw new Error(`No price data for ${ticker}`);
+  if (data.status === 'error' || !Array.isArray(data.values) || data.values.length === 0) {
+    throw new Error(data.message || `No price data for ${ticker}`);
   }
 
-  // Build price rows from parallel arrays (t=timestamps, c=closes)
+  // Values come newest-first — reverse so prices are chronological
   const prices = [];
-  for (let i = 0; i < data.t.length; i++) {
-    if (data.c[i] == null || isNaN(data.c[i])) continue;
-    const dateStr = new Date(data.t[i] * 1000).toISOString().slice(0, 10);
-    prices.push({ date: dateStr, close: data.c[i] });
+  for (const row of [...data.values].reverse()) {
+    const c = parseFloat(row.close);
+    if (isNaN(c)) continue;
+    prices.push({ date: row.datetime, close: c });
   }
 
   if (prices.length < 2) throw new Error(`Insufficient price data for ${ticker}`);
