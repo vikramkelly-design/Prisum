@@ -1,31 +1,30 @@
-const { getYF } = require('../utils/yahoo');
-
 const TRADING_DAYS_REQUESTED = 252; // ~1 year of trading days
-const CALENDAR_DAY_BUFFER    = 400; // calendar days to request to guarantee 252 trading days
 const PRICE_CHART_DAYS       = 100; // days to expose for the normalized price chart
 
-// ── Step 1: Fetch daily closing prices ───────────────────────────────────────
+// ── Step 1: Fetch daily closing prices via Finnhub ───────────────────────────
 
 async function fetchPrices(ticker) {
-  const yf = await getYF();
-  const period2 = new Date();
-  const period1 = new Date(period2.getTime() - CALENDAR_DAY_BUFFER * 24 * 60 * 60 * 1000);
+  const apiKey = process.env.FINNHUB_API_KEY;
+  if (!apiKey) throw new Error('FINNHUB_API_KEY is not set');
 
-  const result = await yf.chart(ticker, {
-    period1,
-    period2,
-    interval: '1d',
-  }, { skipValidation: true });
+  const to   = Math.floor(Date.now() / 1000);
+  const from = to - 550 * 24 * 60 * 60; // ~550 days back to guarantee 252 trading days
 
-  const quotes = result?.quotes ?? [];
-  if (quotes.length === 0) throw new Error(`No price data returned for ${ticker}`);
+  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(ticker)}&resolution=D&from=${from}&to=${to}&token=${apiKey}`;
+  const res  = await fetch(url);
+  if (!res.ok) throw new Error(`Finnhub returned ${res.status} for ${ticker}`);
 
-  // Keep only rows with a valid closing price; normalize date to YYYY-MM-DD string
+  const data = await res.json();
+  if (data.s !== 'ok' || !Array.isArray(data.c) || data.c.length === 0) {
+    throw new Error(`No price data for ${ticker}`);
+  }
+
+  // Build price rows from parallel arrays (t=timestamps, c=closes)
   const prices = [];
-  for (const q of quotes) {
-    if (q.close == null || isNaN(q.close)) continue;
-    const dateStr = new Date(q.date).toISOString().slice(0, 10);
-    prices.push({ date: dateStr, close: q.close });
+  for (let i = 0; i < data.t.length; i++) {
+    if (data.c[i] == null || isNaN(data.c[i])) continue;
+    const dateStr = new Date(data.t[i] * 1000).toISOString().slice(0, 10);
+    prices.push({ date: dateStr, close: data.c[i] });
   }
 
   if (prices.length < 2) throw new Error(`Insufficient price data for ${ticker}`);

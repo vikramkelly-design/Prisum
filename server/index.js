@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
+app.set('trust proxy', 1); // Railway (and most PaaS) sit behind a reverse proxy
 const PORT = process.env.PORT || 3002;
 const isProd = process.env.NODE_ENV === 'production';
 
