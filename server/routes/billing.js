@@ -30,13 +30,14 @@ router.post('/checkout', async (req, res) => {
     const origin = req.headers.origin || process.env.APP_URL || 'https://prisum-app-production.up.railway.app';
 
     const session = await stripe.checkout.sessions.create({
-      mode:               'subscription',
-      payment_method_types: ['card'],
-      line_items:         [{ price: PRICE_ID, quantity: 1 }],
-      customer_email:     user.email,
-      success_url:        `${origin}/app?upgraded=1`,
-      cancel_url:         `${origin}/app`,
-      metadata:           { userId: String(user.id) },
+      mode:                   'subscription',
+      payment_method_types:   ['card'],
+      line_items:             [{ price: PRICE_ID, quantity: 1 }],
+      customer_email:         user.email,
+      allow_promotion_codes:  true,
+      success_url:            `${origin}/app?upgraded=1`,
+      cancel_url:             `${origin}/app`,
+      metadata:               { userId: String(user.id) },
     });
 
     res.json({ success: true, data: { url: session.url } });
