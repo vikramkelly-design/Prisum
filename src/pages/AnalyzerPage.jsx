@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import PortfolioInput from '../components/PortfolioInput'
 import ResultsArea    from '../components/ResultsArea'
+import { useAuth }    from '../AuthContext'
 
 const STORAGE_KEY  = 'prism_holdings'
 const HISTORY_KEY  = 'prism_history'
@@ -114,7 +116,17 @@ export default function AnalyzerPage() {
   const [analyzingTickers,  setAnalyzingTickers]  = useState([])
   const [history,           setHistory]           = useState(loadHistory)
   const [sidebarOpen,       setSidebarOpen]       = useState(true)
-  const resultsRef = useRef(null)
+  const resultsRef   = useRef(null)
+  const { isPro, user, refreshUser } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // After Stripe redirect with ?upgraded=1 — refresh user status
+  useEffect(() => {
+    if (searchParams.get('upgraded') === '1') {
+      refreshUser()
+      setSearchParams({})
+    }
+  }, [])
 
   const windowWidth = useWindowWidth()
   const isMobile  = windowWidth < 768
@@ -137,10 +149,14 @@ export default function AnalyzerPage() {
       const sharesMap = {}
       holdings.forEach(h => { if (h.shares != null) sharesMap[h.ticker] = h.shares })
 
+      const token = localStorage.getItem('prism_token')
       const response = await fetch('/api/analyze', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ tickers, shares: sharesMap }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ tickers, shares: sharesMap }),
       })
       const json = await response.json()
 
@@ -297,6 +313,8 @@ export default function AnalyzerPage() {
           apiError={apiError}
           analyzingTickers={analyzingTickers}
           isMobile={isMobile}
+          isPro={isPro}
+          user={user}
         />
       </div>
     </div>

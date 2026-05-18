@@ -168,12 +168,51 @@ function SectionLabel({ children }) {
 
 // ── Main results area ─────────────────────────────────────────────────────────
 
+async function startCheckout() {
+  const token = localStorage.getItem('prism_token')
+  if (!token) {
+    window.location.href = '/auth?next=upgrade'
+    return
+  }
+  const res  = await fetch('/api/billing/checkout', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+  })
+  const json = await res.json()
+  if (json.data?.url) window.location.href = json.data.url
+}
+
+function PaywallBlock() {
+  return (
+    <div className="paywall-block">
+      <div className="paywall-lock">⬡</div>
+      <div className="paywall-title">Prism Pro</div>
+      <p className="paywall-desc">
+        Upgrade to unlock the full AI explanation, 100-day price chart, and full correlation matrix.
+      </p>
+      <div className="paywall-features">
+        <div className="paywall-feature">✓ In-depth written analysis</div>
+        <div className="paywall-feature">✓ 100-day normalized price chart</div>
+        <div className="paywall-feature">✓ Full correlation matrix</div>
+        <div className="paywall-feature">✓ Up to 20 tickers</div>
+        <div className="paywall-feature">✓ Unlimited analyses</div>
+      </div>
+      <button className="paywall-btn" onClick={startCheckout}>
+        Upgrade to Pro — $9/month
+      </button>
+      <div className="paywall-sub">Cancel anytime · Billed monthly via Stripe</div>
+    </div>
+  )
+}
+
 export default function ResultsArea({
   results,
   isAnalyzing,
   apiError,
   analyzingTickers = [],
   isMobile = false,
+  isPro = false,
+  user = null,
 }) {
   const [displayScore, setDisplayScore] = useState(0)
   const [deepDiveOpen, setDeepDiveOpen] = useState(false)
@@ -409,14 +448,16 @@ export default function ResultsArea({
             {results.verdict}
           </p>
 
-          {/* Deep dive button — lives under the score */}
-          {results.priceSeries && Object.keys(results.priceSeries).length > 0 && (
-            <button
-              className="deep-dive-btn"
-              onClick={() => setDeepDiveOpen(true)}
-            >
+          {/* Deep dive button — pro only */}
+          {isPro && results.priceSeries && Object.keys(results.priceSeries).length > 0 ? (
+            <button className="deep-dive-btn" onClick={() => setDeepDiveOpen(true)}>
               <span className="deep-dive-btn-icon">⬡</span>
               More In-Depth Graphical Explanation
+            </button>
+          ) : !isPro && (
+            <button className="deep-dive-btn deep-dive-btn--locked" onClick={startCheckout}>
+              <span className="deep-dive-btn-icon">🔒</span>
+              More In-Depth Graphical Explanation — Pro
             </button>
           )}
         </div>
@@ -493,6 +534,9 @@ export default function ResultsArea({
         {/* ── What this means ────────────────────────────────────────────────── */}
         <div className="what-this-means">
           <SectionLabel>What This Means</SectionLabel>
+
+          {isPro ? (
+            <>
           <p style={{
             fontFamily: 'var(--font-sans)',
             fontSize: '0.875rem',
@@ -526,6 +570,10 @@ export default function ResultsArea({
           </p>
 
           <Disclaimer />
+            </>
+          ) : (
+            <PaywallBlock />
+          )}
         </div>
 
         {/* Data provenance */}

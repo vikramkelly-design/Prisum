@@ -2,7 +2,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
-const { ensureSchema } = require('./utils/db');
+const { ensureSchema } = require('./db');
 
 const app = express();
 app.set('trust proxy', 1); // Railway (and most PaaS) sit behind a reverse proxy
@@ -19,11 +19,15 @@ if (isProd) {
   }));
 }
 
+// Stripe webhook needs raw body — mount BEFORE express.json()
+app.use('/api/billing/webhook', require('./routes/billing').webhookRouter || require('./routes/billing'));
+
 app.use(express.json({ limit: '1mb' }));
 
 // Routes
 app.use('/api/analyze', require('./routes/analyze'));
 app.use('/api/auth',    require('./routes/auth'));
+app.use('/api/billing', require('./routes/billing'));
 
 // Health check
 app.get('/api/health', (req, res) => {

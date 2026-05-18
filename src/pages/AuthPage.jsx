@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { usePageNav } from '../App'
-
-const SESSION_KEY = 'prism_session'
+import { useAuth } from '../AuthContext'
 
 export default function AuthPage() {
   const goTo  = usePageNav()
+  const { login } = useAuth()
   const [mode,  setMode]  = useState('signup')
   const [email, setEmail] = useState('')
   const [pass,  setPass]  = useState('')
@@ -39,7 +39,7 @@ export default function AuthPage() {
         return
       }
 
-      localStorage.setItem(SESSION_KEY, JSON.stringify(json.data))
+      login(json.data.token, { email: json.data.email, subscriptionStatus: json.data.subscriptionStatus })
       goTo('/app')
     } catch {
       setError('Could not connect. Check your connection and try again.')
